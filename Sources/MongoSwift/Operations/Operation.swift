@@ -126,3 +126,10 @@ internal func encodeOptions<T: Encodable>(options: T?, session: ClientSession?) 
     try session?.append(to: &doc)
     return doc
 }
+
+internal func encodeOptions<T: Encodable>(options: T?, server: ServerDescription, session: ClientSession?) throws -> BSONDocument {
+    var doc = try BSONEncoder().encode(options) ?? BSONDocument()
+    try session?.append(to: &doc)
+    doc["serverId"] = .int64(Int64(server.serverId))
+    return doc
+}

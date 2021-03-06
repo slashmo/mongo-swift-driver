@@ -33,6 +33,26 @@ internal func runMongocCommandWithReply(
     }
 }
 
+internal func runMongocCursorCommand(
+    connPtr: OpaquePointer,
+    command: BSONDocument,
+    options: BSONDocument?,
+    body: MongocCommandFunc
+) throws -> OpaquePointer {
+    var reply = bson_t()
+    return try withUnsafeMutablePointer(to: &reply) { replyPtr in
+        do {
+            try _runMongocCommand(command: command, options: options, replyPtr: replyPtr, body: body)
+            // steals the reply pointer
+            return mongoc_cursor_new_from_command_reply_with_opts(connPtr, replyPtr, nil)
+        } catch {
+            // on error, need to manually clean up the reply
+            bson_destroy(replyPtr)
+            throw error
+        }
+    }
+}
+
 /// Calls the provided mongoc command method using pointers to the specified command and options.
 internal func runMongocCommand(command: BSONDocument, options: BSONDocument?, body: MongocCommandFunc) throws {
     try withStackAllocatedMutableBSONPointer { replyPtr in

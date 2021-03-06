@@ -56,8 +56,6 @@ internal struct ListDatabasesOperation: Operation {
     }
 
     internal func execute(using connection: Connection, session: ClientSession?) throws -> ListDatabasesResults {
-        // spec requires that this command be run against the primary.
-        let readPref = ReadPreference.primary
         var cmd: BSONDocument = ["listDatabases": 1]
         if let filter = self.filter {
             cmd["filter"] = .document(filter)
@@ -69,8 +67,13 @@ internal struct ListDatabasesOperation: Operation {
             cmd["authorizedDatabases"] = .bool(authorizedDatabases)
         }
 
-        let opts = try encodeOptions(options: nil as BSONDocument?, session: session)
+        // spec requires that this command be run against the primary.
+        let readPref = ReadPreference.primary
+        let server = try connection.selectServer(forWrites: false, readPreference: readPref)
+        let opts = try encodeOptions(options: ["serverId": server.serverId], session: session)
 
+        // Although "opts" already always includes the serverId option, the read preference is added to the command
+        // parts, which is relevant for mongos command construction. (this comment is a copy paste from PHP)
         let reply = try connection.withMongocConnection { connPtr in
             try readPref.withMongocReadPreference { rpPtr in
                 try runMongocCommandWithReply(command: cmd, options: opts) { cmdPtr, optsPtr, replyPtr, error in

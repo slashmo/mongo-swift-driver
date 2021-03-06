@@ -46,11 +46,23 @@ internal struct CreateIndexesOperation<T: Codable>: Operation {
 
         let command: BSONDocument = ["createIndexes": .string(self.collection.name), "indexes": .array(indexData)]
 
-        let opts = try encodeOptions(options: options, session: session)
+        let server = try connection.selectServer(forWrites: true, readPreference: nil)
 
-        try self.collection.withMongocCollection(from: connection) { collPtr in
+        // todo: switching to the client methods means we lose db/collection RC and WC application so this is
+        // just a hacky way to deal with that here.
+        // we could still use the coll/db runCommand methods, as they accept serverIds, but seems preferable to
+        // just go ahead and start handling that logic on our side via some abstractions, and just always use the 
+        // client command methods a la PHP.
+        var optsWithWC = self.options ?? CreateIndexOptions()
+        if optsWithWC.writeConcern == nil {
+            optsWithWC.writeConcern = self.collection.writeConcern
+        }
+
+        let opts = try encodeOptions(options: optsWithWC, server: server, session: session)
+
+        try connection.withMongocConnection { connPtr in
             try runMongocCommand(command: command, options: opts) { cmdPtr, optsPtr, replyPtr, error in
-                mongoc_collection_write_command_with_opts(collPtr, cmdPtr, optsPtr, replyPtr, &error)
+                mongoc_client_write_command_with_opts(connPtr, self.collection.namespace.db, cmdPtr, optsPtr, replyPtr, &error)
             }
         }
 

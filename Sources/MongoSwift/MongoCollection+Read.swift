@@ -165,12 +165,21 @@ extension MongoCollection {
         session: ClientSession? = nil
     ) -> EventLoopFuture<Int> {
         let operation = CountDocumentsOperation(collection: self, filter: filter, options: options)
-        return self._client.operationExecutor.execute(
+        let cursorFuture = self._client.operationExecutor.execute(
             operation,
             client: self._client,
             on: self.eventLoop,
             session: session
         )
+        return cursorFuture.flatMap { cursor in
+            cursor.next().always { _ in _ = cursor.kill() }
+        }.flatMapThrowing { res in
+            // no results (but no error) means empty collection.
+            guard let res = res else {
+                return 0
+            }
+            return res.n
+        }
     }
 
     /**

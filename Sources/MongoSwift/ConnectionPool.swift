@@ -15,6 +15,18 @@ internal class Connection {
         self.pool = pool
     }
 
+    internal func selectServer(forWrites: Bool, readPreference: ReadPreference?) throws -> ServerDescription {
+        var error = bson_error_t()
+        let sdPtr: OpaquePointer = try ReadPreference.withOptionalMongocReadPreference(from: readPreference) { rpPtr in
+            guard let sd = mongoc_client_select_server(self.clientHandle, forWrites, rpPtr, &error) else {
+                throw extractMongoError(error: error)
+            }
+            return sd
+        }
+        defer { mongoc_server_description_destroy(sdPtr) }
+        return ServerDescription(sdPtr)
+    }
+
     internal func withMongocConnection<T>(_ body: (OpaquePointer) throws -> T) rethrows -> T {
         try body(self.clientHandle)
     }

@@ -47,6 +47,19 @@ public struct CountDocumentsOptions: Codable {
     private enum CodingKeys: String, CodingKey {
         case collation, hint, limit, maxTimeMS, readConcern, skip
     }
+
+    func toAggregateOptions(collectionReadConcern: ReadConcern?) -> AggregateOptions {
+        AggregateOptions(
+            collation: self.collation,
+            hint: self.hint,
+            maxTimeMS: self.maxTimeMS,
+            readConcern: self.readConcern ?? collectionReadConcern
+        )
+    }
+}
+
+internal struct CountDocumentsResponse: Codable {
+    let n: Int
 }
 
 /// An operation corresponding to a "count" command on a collection.
@@ -61,31 +74,45 @@ internal struct CountDocumentsOperation<T: Codable>: Operation {
         self.options = options
     }
 
-    internal func execute(using connection: Connection, session: ClientSession?) throws -> Int {
-        let opts = try encodeOptions(options: options, session: session)
-        var error = bson_error_t()
+    internal func execute(using connection: Connection, session: ClientSession?) throws -> MongoCursor<CountDocumentsResponse> {
+        let readPref = options?.readPreference ?? collection.readPreference
 
-        return try self.collection.withMongocCollection(from: connection) { collPtr in
-            try self.filter.withBSONPointer { filterPtr in
-                try withOptionalBSONPointer(to: opts) { optsPtr in
-                    try ReadPreference.withOptionalMongocReadPreference(from: self.options?.readPreference) { rpPtr in
-                        try withStackAllocatedMutableBSONPointer { replyPtr in
-                            let count = mongoc_collection_count_documents(
-                                collPtr,
-                                filterPtr,
-                                optsPtr,
-                                rpPtr,
-                                replyPtr,
-                                &error
-                            )
-                            guard count != -1 else {
-                                throw extractMongoError(error: error, reply: BSONDocument(copying: replyPtr))
-                            }
-                            return Int(count)
-                        }
-                    }
+        let server = try connection.selectServer(forWrites: false, readPreference: readPref)
+        let aggregateOpts = (options ?? CountDocumentsOptions()).toAggregateOptions(collectionReadConcern: collection.readConcern)
+
+        let opts = try encodeOptions(options: aggregateOpts, server: server, session: session)
+
+        var pipeline = [BSONDocument]()
+        pipeline.append(["$match": .document(self.filter)])
+        if let skip = options?.skip {
+            pipeline.append(["$skip": .int64(Int64(skip))])
+        }
+        if let limit = options?.limit {
+            pipeline.append(["$limit": .int64(Int64(limit))])
+        }
+        pipeline.append(["$group": ["_id": 1, "n": ["$sum": 1]]])
+
+        let cmd: BSONDocument = [
+            "aggregate": .string(collection.name),
+            "cursor": [:],
+            "pipeline": .array(pipeline.map { .document($0) })
+        ]
+
+        let cursorPtr = try connection.withMongocConnection { connPtr in
+            try readPref.withMongocReadPreference { rpPtr in
+                try runMongocCursorCommand(connPtr: connPtr, command: cmd, options: opts) { cmdPtr, optsPtr, replyPtr, error in
+                    mongoc_client_read_command_with_opts(connPtr, collection.namespace.db, cmdPtr, rpPtr, optsPtr, replyPtr, &error)
                 }
             }
         }
+
+        return try MongoCursor(
+            stealing: cursorPtr,
+            connection: connection,
+            client: collection._client,
+            decoder: collection.decoder,
+            eventLoop: collection.eventLoop,
+            session: session
+        )
     }
 }

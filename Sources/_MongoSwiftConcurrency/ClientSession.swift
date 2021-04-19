@@ -4,6 +4,7 @@ import MongoSwift
 import NIO
 import _NIOConcurrency
 
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 extension ClientSession {
     /// Ends this `ClientSession`. Call this method when you are finished using the session. You must ensure that all
     /// operations using this session have completed before calling this. The returned future must be fulfilled before

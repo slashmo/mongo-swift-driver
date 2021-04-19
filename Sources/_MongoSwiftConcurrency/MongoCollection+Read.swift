@@ -1,9 +1,13 @@
 #if compiler(>=5.4) && $AsyncAwait
 import _Concurrency
+import CLibMongoC
 import MongoSwift
 import NIO
 import _NIOConcurrency
+import Tracing
+import TracingOpenTelemetrySupport
 
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 extension MongoCollection {
     /**
      * Finds the documents in this collection which match the provided filter.
@@ -25,7 +29,25 @@ extension MongoCollection {
         options: FindOptions? = nil,
         session: ClientSession? = nil
     ) async throws -> MongoCursor<CollectionType> {
-        try await self.find(filter, options: options, session: session).get()
+        try await InstrumentationSystem.tracer.withSpan("\(name).find") { span in
+            span.attributes.db.system = "mongodb"
+            span.attributes.db.operation = "find"
+            span.attributes.db.mongodb.collection = name
+            span.attributes.db.name = namespace.db
+            // TODO: Use actual values
+            span.attributes.db.user = session?.client._connectionString.username
+            span.attributes.net.peer.port = (session?.client._connectionString.hosts?.first?.port).map(Int.init)
+            span.attributes.net.peer.ip = (session?.client._connectionString.hosts?.first?.host)
+            span.attributes.net.transport = "IP.TCP"
+            do {
+                let cursor = try await self.find(filter, options: options, session: session).get()
+                return cursor
+            } catch {
+                span.recordError(error)
+                span.setStatus(SpanStatus(code: .error, message: "\(error)"))
+                throw error
+            }
+        }
     }
 
     /**
@@ -48,7 +70,24 @@ extension MongoCollection {
         options: FindOneOptions? = nil,
         session: ClientSession? = nil
     ) async throws -> T? {
-        try await self.findOne(filter, options: options, session: session).get()
+        try await InstrumentationSystem.tracer.withSpan("\(name).findOne") { span in
+            span.attributes.db.system = "mongodb"
+            span.attributes.db.operation = "findOne"
+            span.attributes.db.mongodb.collection = name
+            span.attributes.db.name = namespace.db
+            // TODO: Use actual values
+            span.attributes.db.user = session?.client._connectionString.username
+            span.attributes.net.peer.port = (session?.client._connectionString.hosts?.first?.port).map(Int.init)
+            span.attributes.net.peer.ip = (session?.client._connectionString.hosts?.first?.host)
+            span.attributes.net.transport = "IP.TCP"
+            do {
+                return try await self.findOne(filter, options: options, session: session).get()
+            } catch {
+                span.recordError(error)
+                span.setStatus(SpanStatus(code: .error, message: "\(error)"))
+                throw error
+            }
+        }
     }
 
     /**
@@ -162,6 +201,13 @@ extension MongoCollection {
         session: ClientSession? = nil
     ) async throws -> [BSON] {
         try await self.distinct(fieldName: fieldName, filter: filter, options: options, session: session).get()
+    }
+}
+
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
+extension MongoCursor {
+    public func toArray() async throws -> [T] {
+        try await self.toArray().get()
     }
 }
 

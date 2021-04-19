@@ -12,11 +12,17 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/Quick/Nimble.git", .upToNextMajor(from: "8.0.0")),
-        .package(url: "https://github.com/apple/swift-nio", .revision("4220c7a16a5ee0abb7da150bd3d4444940a20cc2")),
-        .package(url: "https://github.com/mongodb/swift-bson", .upToNextMajor(from: "3.0.0"))
+        .package(url: "https://github.com/apple/swift-nio", .revision("f6936ae8132e14c64ed971764065e6842358fde0")),
+        .package(url: "https://github.com/mongodb/swift-bson", .upToNextMajor(from: "3.0.0")),
+        .package(url: "https://github.com/apple/swift-distributed-tracing.git", .branch("async")),
     ],
     targets: [
-        .target(name: "MongoSwift", dependencies: ["CLibMongoC", "NIO", "NIOConcurrencyHelpers", "SwiftBSON",]),
+        .target(
+            name: "MongoSwift",
+            dependencies: [
+                "CLibMongoC", "NIO", "NIOConcurrencyHelpers", "SwiftBSON", "Tracing", "TracingOpenTelemetrySupport"
+            ]
+        ),
         .target(name: "MongoSwiftSync", dependencies: ["MongoSwift", "NIO"]),
         .target(
             name: "_MongoSwiftConcurrency",

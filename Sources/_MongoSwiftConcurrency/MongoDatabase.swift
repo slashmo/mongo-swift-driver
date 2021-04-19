@@ -5,6 +5,7 @@ import NIO
 import _NIOConcurrency
 
 /// Extension to MongoDatabase to support experimental async/await APIs.
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 extension MongoDatabase {
     /**
      *   Drops this database.

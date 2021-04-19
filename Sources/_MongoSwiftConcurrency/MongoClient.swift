@@ -5,6 +5,7 @@ import NIO
 import _NIOConcurrency
 
 /// Extension to MongoClient to support experimental async/await APIs.
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 extension MongoClient {
     public func close() async throws {
         try await self.close().get()

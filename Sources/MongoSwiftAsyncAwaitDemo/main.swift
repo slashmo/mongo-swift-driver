@@ -10,6 +10,7 @@ defer {
     try? elg.syncShutdownGracefully()
 }
 
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 func main() async throws {
     let client = try MongoClient(using: elg)
     let coll = client.db("asyncTestDB").collection("test")
@@ -27,13 +28,12 @@ func main() async throws {
 
 let dg = DispatchGroup()
 dg.enter()
-let task = Task.runDetached {
-    do {
+if #available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *) {
+    detach {
         try await main()
-        print("success!")
-    } catch {
-        print("failed! \(error)")
+        dg.leave()
     }
+} else {
     dg.leave()
 }
 dg.wait()

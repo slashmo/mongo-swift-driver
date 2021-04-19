@@ -15,8 +15,35 @@
         "repositoryURL": "https://github.com/mongodb/swift-bson",
         "state": {
           "branch": null,
-          "revision": "8a9d60c4e684579a390621674850e8a6fa04c3ed",
-          "version": "3.0.0"
+          "revision": "558c7ff441da4599a18dc5eee5b4c6c6d74a1b8b",
+          "version": "3.0.1"
+        }
+      },
+      {
+        "package": "swift-distributed-tracing",
+        "repositoryURL": "https://github.com/apple/swift-distributed-tracing.git",
+        "state": {
+          "branch": "async",
+          "revision": "ce47c1fa60ef144f58483ba4a039d98cbba23e65",
+          "version": null
+        }
+      },
+      {
+        "package": "swift-distributed-tracing-baggage",
+        "repositoryURL": "https://github.com/apple/swift-distributed-tracing-baggage.git",
+        "state": {
+          "branch": "async",
+          "revision": "459375e9cf13ad30be3e61f0d9fff57c9d01196e",
+          "version": null
+        }
+      },
+      {
+        "package": "swift-distributed-tracing-baggage-core",
+        "repositoryURL": "https://github.com/apple/swift-distributed-tracing-baggage-core.git",
+        "state": {
+          "branch": "task-locals",
+          "revision": "23cfc5f4ec9a64120954efed06016d3b42641e57",
+          "version": null
         }
       },
       {
@@ -38,11 +65,20 @@
         }
       },
       {
+        "package": "swift-log",
+        "repositoryURL": "https://github.com/apple/swift-log.git",
+        "state": {
+          "branch": null,
+          "revision": "5d66f7ba25daf4f94100e7022febf3c75e37a6c7",
+          "version": "1.4.2"
+        }
+      },
+      {
         "package": "swift-nio",
         "repositoryURL": "https://github.com/apple/swift-nio",
         "state": {
           "branch": null,
-          "revision": "4220c7a16a5ee0abb7da150bd3d4444940a20cc2",
+          "revision": "f6936ae8132e14c64ed971764065e6842358fde0",
           "version": null
         }
       }

@@ -1,7 +1,7 @@
 import CLibMongoC
 
 /// Class representing a connection string for connecting to MongoDB.
-internal class ConnectionString {
+public class ConnectionString {
     /// Type defining the relationship between a field on MongoClientOptions and a URI option.
     private struct Option {
         /// The key path into `MongoClientOptions` of the option.
@@ -513,7 +513,8 @@ internal class ConnectionString {
     }
 
     /// Returns the username if one was provided, otherwise nil.
-    internal var username: String? {
+    /// Public because accessed in `_MongoSwiftConcurrency`.
+    public var username: String? {
         guard let username = mongoc_uri_get_username(self._uri) else {
             return nil
         }
@@ -620,7 +621,7 @@ internal class ConnectionString {
 
     /// Returns the host/port pairs specified in the connection string, or nil if this connection string's scheme is
     /// “mongodb+srv://”.
-    internal var hosts: [ServerAddress]? {
+    public var hosts: [ServerAddress]? {
         guard let hostList = mongoc_uri_get_hosts(self._uri) else {
             return nil
         }

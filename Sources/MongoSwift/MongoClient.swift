@@ -269,6 +269,10 @@ public class MongoClient {
     /// A unique identifier for this client. Sets _id to the generator's current value and increments the generator.
     internal let _id = clientIDGenerator.add(1)
 
+    /// The connection string provided by the user.
+    /// Public because accessed in `_MongoSwiftConcurrency`
+    public var _connectionString: ConnectionString
+
     /// Encoder whose options are inherited by databases derived from this client.
     public let encoder: BSONEncoder
 
@@ -310,6 +314,7 @@ public class MongoClient {
         initializeMongoc()
 
         let connString = try ConnectionString(connectionString, options: options)
+        self._connectionString = connString
         self.operationExecutor = OperationExecutor(
             eventLoopGroup: eventLoopGroup,
             threadPoolSize: options?.threadPoolSize ?? MongoClient.defaultThreadPoolSize

@@ -4,6 +4,7 @@ import MongoSwift
 import NIO
 import _NIOConcurrency
 
+@available(macOS 9999, iOS 9999, watchOS 9999, tvOS 9999, *)
 extension MongoCollection {
     /**
      * Creates an index over the collection for the provided keys with the provided options.
